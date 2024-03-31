@@ -94,7 +94,7 @@ def plot(latent_dict, i):
     plt.ylabel('Mean Frobenius error in ' + label)
     plt.grid(True)
     plt.legend()
-    plt.savefig(f"figures/pop_cumulants/{name}.pdf")
+    plt.savefig(f"figures/pop_cumulants/{name}.png")
 
 def main():
     latent_dict = run(500)

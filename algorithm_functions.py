@@ -13,7 +13,6 @@ import numpy as np
 import tensorly as tl
 from PyMoments import kstat
 
-
 def create_params(p, q):
     """
     Sample B and Lambdas.
@@ -255,7 +254,7 @@ def decompose_tensors(Ts,q):
         Product_recovery[key] = factor
     return Product_recovery
 
-def find_alphas(tensor, recovered_product):
+def find_alphas(T, recovered_product):
     """
     Calculate tensor decomposition coefficients.
 
@@ -267,7 +266,7 @@ def find_alphas(tensor, recovered_product):
         numpy.ndarray: the coefficients minimizing the Frobenius norm of the difference between T and the reconstructed tensor.
     """
     p, q = np.shape(recovered_product)
-    b = np.reshape(tensor, p**3)
+    b = np.reshape(T, p**3)
     A = []
     for j in range(q):
         current_v = np.reshape(recovered_product[:,j],(p,1))
@@ -304,51 +303,51 @@ def nonnorm_products(Ts, RProducts):
         RProducts_nn[key] = (current_product, current_product_inv)
     return RProducts_nn
 
-def recover_int_target(Invnn, Invtildenn, current_ints):
+def recover_int_target(C, Ctilde, current_ints):
     """
-    Determine intervention target and permutation matrix of interventional context where pseudoinverse of Invtildenn was recovered.
+    Determine intervention target and permutation matrix of interventional context where pseudoinverse of Ctilde was recovered.
 
     Args:
-        Invnn (numpy.ndarray): pseudoinverse of the product recovered in the observational context.
-        Invtildenn (numpy.ndarray): pseudoinvere of the product recovered in an interventional context with unknown intervention target.
+        C (numpy.ndarray): pseudoinverse of the product recovered in the observational context.
+        Ctilde (numpy.ndarray): pseudoinvere of the product recovered in an interventional context with unknown intervention target.
         current_ints (set[int]): a set containing the intervention targets of the interventional contexts that have already been matched with an intervention target.
     
     Returns:
-        tuple: a tuple containing the intervened variable in the context where the pseudoinverse of Invtildenn was recovered 
+        tuple: a tuple containing the intervened variable in the context where the pseudoinverse of Ctilde was recovered 
             and the index indicating the relabeling of this variable in such context.
-        numpy.ndarray: the permutation matrix encoding the relabeling of the latent nodes in the interventional context where the pseudoinverse of Invtildenn was recovered.
+        numpy.ndarray: the permutation matrix encoding the relabeling of the latent nodes in the interventional context where the pseudoinverse of Ctilde was recovered.
     """
-    q, _ = np.shape(Invnn)
+    q, _ = np.shape(C)
     diff_list = []
-    matches = {}
+    matches_int = {}
     P = np.zeros((q,q))
     for k in range(q):
-        matches[k] = 0
+        matches_int[k] = 0
 
     # Initial matching of rows of C with rows of \tilde{C}
     for i in range(q):
-        row_int, diff = hp.match_row(Invnn[i,:].copy(),Invtildenn)
-        matches[row_int] += 1
-        diff_list.append((i,row_int,diff))
+        row_int, diff = hp.match_row(C[i,:].copy(), Ctilde)
+        matches_int[row_int] += 1
+        diff_list.append((i, row_int, diff))
     
     # Rematch incorrectly matched rows
-    unmatched_rows = [k for k, v in matches.items() if v == 0]
-    for (key, value) in matches.copy().items():
+    unmatched_rows = [k for k, v in matches_int.items() if v == 0]
+    for (key, value) in matches_int.copy().items():
         if value > 1:
-            pairs_of_interest = list(filter(lambda x: x[1]==key,diff_list))
-            pairs_of_interest.sort(key=lambda x: x[2])
-            pairs_of_interest.remove(pairs_of_interest[0])
+            tuple_list = list(filter(lambda x: x[1]==key,diff_list))
+            tuple_list.sort(key = lambda x: x[2])
+            tuple_list.remove(tuple_list[0])
 
-            diff_list = [elt for elt in diff_list if elt not in pairs_of_interest]
+            diff_list = [elt for elt in diff_list if elt not in tuple_list]
             
-            for orig_row_ind, _, _ in pairs_of_interest:
-                row_int_new, diff_new = hp.match_row(Invnn[orig_row_ind,:].copy(),Invtildenn[unmatched_rows,:])
-                new_match = (orig_row_ind,unmatched_rows[row_int_new],diff_new)
+            for obs_row_ind, _, _ in tuple_list:
+                row_int_new, diff_new = hp.match_row(C[obs_row_ind,:].copy(), Ctilde[unmatched_rows,:])
+                new_match = (obs_row_ind, unmatched_rows[row_int_new], diff_new)
                 unmatched_rows.remove(unmatched_rows[row_int_new])
                 diff_list.append(new_match)
     
     diff_list.sort(reverse=True, key=lambda x: x[2])
-    for (i,j,_) in diff_list:
+    for (i, j, _) in diff_list:
         P[i,j]=1
     for tuple in diff_list:
         if not(tuple[0] in current_ints):
@@ -369,23 +368,23 @@ def match_int(Productsnn):
                 in the observational context.
     """
     tuples = {}
-    Prodnn, Invnn = Productsnn["obs"]
-    tuples["obs"] = (Prodnn, Invnn, (-1,-1))
+    Prodnn, C = Productsnn["obs"]
+    tuples["obs"] = (Prodnn, C, (-1,-1))
     keys = Productsnn.keys()
     current_ints = set()
     for key in keys:
         if key == "obs":
             continue
         else:
-            Prodtildenn, Invtildenn = Productsnn[key]
+            Prodtildenn, Ctilde = Productsnn[key]
             _, q = np.shape(Prodtildenn)
-            tuple, P = recover_int_target(Invnn,Invtildenn,current_ints)
+            tuple, P = recover_int_target(C, Ctilde, current_ints)
 
             assert(np.linalg.matrix_rank(P)==q)
             current_ints.add(tuple[0])
             Prodtildenn_new = np.matmul(Prodtildenn, np.transpose(P))
-            Invtildenn_new = np.matmul(P, Invtildenn)
-            tuples[key] = (Prodtildenn_new, Invtildenn_new, (tuple[0], tuple[1]))
+            Cprimetilde = np.matmul(P, Ctilde)
+            tuples[key] = (Prodtildenn_new, Cprimetilde, (tuple[0], tuple[1]))
     return tuples
 
 def recover_H(tuples):
@@ -407,9 +406,9 @@ def recover_H(tuples):
         if key == "obs":
             continue
         else:
-            _, Invtildenn, int_target = tuples[key]
+            _, Cprimea, int_target = tuples[key]
             a, _ = int_target
-            new_row = Invtildenn[a,:]/(np.linalg.norm(Invtildenn[a,:]))
+            new_row = Cprimea[a,:]/(np.linalg.norm(Cprimea[a,:]))
             index = max(enumerate(new_row), key=lambda x: (abs(x[1])))[0]
             if new_row[index] < 0:
                 new_row = new_row*(-1)

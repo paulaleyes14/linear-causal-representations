@@ -104,7 +104,7 @@ def plot(nlatent, nobserved, diff_H, diff_H_abs, diff_lambda, tensor_diff, nsamp
             path = "figures/sample_cumulants/{0}latent{1}observed/nonlinearZ/{2}coeff".format(nlatent, nobserved, alpha_Z)
         case (True, True):
             path = "figures/sample_cumulants/{0}latent{1}observed/nonlinearXZ/{2}Xcoeff{3}Zcoeff".format(nlatent, nobserved, alpha_X, alpha_Z)
-    os.makedirs(path,exist_ok=True)
+    os.makedirs(path, exist_ok=True)
 
     # Plot error in estimating H and abs(H)
     plt.figure(figsize=(8, 6))
