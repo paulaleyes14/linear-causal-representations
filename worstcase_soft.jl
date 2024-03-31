@@ -17,7 +17,6 @@ Lt = [1 -lt[1,2]; 0 1]
 L1 = [1 -l1[1,2]; 0 1]
 L1t = [1 -l1t[1,2]; 0 1]
 
-# so here the d variables are the entries of D^{-1}
 D = [d[1] 0; 0 d[2]] 
 Dt = [dt[1] 0; 0 dt[2]]
 
@@ -45,6 +44,8 @@ J = ideal(R, [reduce(vcat, H-Ht); reduce(vcat, l-lt); reduce(vcat, l1-l1t); redu
 
 # Impose that the parameters are different across models and that the norms of the rows of H equal 1
 K = saturation(I,J)
+
+# Determine dimension of solution set
 ind_cond = codim(K) 
 difference = 20-ind_cond
 println("The system of equations has $ind_cond independent conditions and 20 variables, so the solution set is $difference-dimensional.")
