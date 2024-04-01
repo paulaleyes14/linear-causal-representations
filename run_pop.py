@@ -19,7 +19,7 @@ def run(nmodels):
         nmodels (int): number of models to generate per value of (q, p). Errors will be averaged across them.
     
     Returns:
-        dict: a dictionary mapping the number of latent variables to the mean errors in parameter estimation for different values of p.
+        latent_dict (dict): a dictionary mapping the number of latent variables to the mean errors in parameter estimation for different values of p.
             Keys are the number of latent variables (int), and the values are tuples containing the mean errors in estimating H,
                 those in estimating abs(H), and those in estimating Lambda, all for values of p ranging from q to 15.
     """
@@ -72,8 +72,8 @@ def plot(latent_dict, i):
         latent_dict (dict): a dictionary mapping the number of latent variables to the mean errors in parameter estimation for different values of p.
             Keys are the number of latent variables (int), and the values are tuples containing the mean errors in estimating H,
                 those in estimating abs(H), and those in estimating Lambda, all for values of p ranging from q to 15.
-        i (int): indicates what errorss to plot. If equal to 0, it plots the errors in estimating H, if equal to 1, it plots those in estimating abs(H), 
-            and if equal to 2, it plots those in estimating Lambda.
+        i (int): indicates what errorss to plot. If equal to 0, plot the errors in estimating H, if equal to 1, plot those in estimating abs(H), 
+            and if equal to 2, plot those in estimating Lambda.
     """
     nobserved = np.linspace(4,15,12)
     plt.figure(figsize=(8, 6))

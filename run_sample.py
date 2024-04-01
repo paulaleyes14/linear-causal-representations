@@ -9,7 +9,6 @@ import helper_functions as hp
 
 # Third-party
 import numpy as np
-from sklearn.preprocessing import normalize
 import matplotlib.pyplot as plt
 
 def run_sample(nsamples_list, nobserved, nlatent, nmodels, nonlinear_X, alpha_X, nonlinear_Z, alpha_Z):
@@ -27,8 +26,11 @@ def run_sample(nsamples_list, nobserved, nlatent, nmodels, nonlinear_X, alpha_X,
         alpha_Z (float): coefficient quantifying how much nonlinearity to add in the latent space. Equals 0 if nonlinear_Z is False.
     
     Returns:
-        tuple: a tuple containing a list of the mean errors in estimating H for each number of samples (list[float]), a list of the mean errors in estimating abs(H) for
-            each number of samples (list[float]), and a list of the mean errors in estimating Lambda for each number of samples (list[float]).
+        (diff_H_global, diff_H_abs_global, diff_lambda_global, tensor_diff_global) (tuple): a tuple containing lists of mean estimation errors.
+            diff_H_global (list[float]): a list of the mean errors in estimating H for each number of samples 
+            diff_H_abs_global (list[float]): a list of the mean errors in estimating abs(H) for each number of samples 
+            diff_lambda_global (list[float]):  a list of the mean errors in estimating Lambda for each number of samples.
+            tensor_diff_global (list[float]): a list of the mean errors in estimating the population cumulants for each number of samples.
     """
     models = af.create_models(nmodels, nobserved, nlatent)
     diff_H_global = []
@@ -50,7 +52,6 @@ def run_sample(nsamples_list, nobserved, nlatent, nmodels, nonlinear_X, alpha_X,
             RProducts = af.decompose_tensors(Ts,nlatent)
             RProdnninv = af.nonnorm_products(Ts, RProducts)
             RProdnn = {key: values[0] for key, values in RProdnninv.items()}
-            RProdinv = {key: values[1] for key, values in RProdnninv.items()}
             int_tuples = af.match_int(RProdnninv)
 
             Hr = af.recover_H(int_tuples)
@@ -63,7 +64,7 @@ def run_sample(nsamples_list, nobserved, nlatent, nmodels, nonlinear_X, alpha_X,
             Lambdar = af.recover_lambda(int_tuples,Hr,tol_param=0.01)
             diff_lambda = hp.lambda_diff(Lambdas["obs"],Lambdar,perm)
             diff_lambda_local.append(diff_lambda)
-        # Once I have gone through my models, I want to save the mean. Then I should have one value per number of samples
+
         diff_H_global.append(np.mean(diff_H_local))
         print("Mean error in H for {0} samples is {1}".format(nsamples,np.mean(diff_H_local)))
         diff_H_abs_global.append(np.mean(diff_H_abs_local))
@@ -73,7 +74,7 @@ def run_sample(nsamples_list, nobserved, nlatent, nmodels, nonlinear_X, alpha_X,
         tensor_diff_global.append(np.mean(tensor_diff_local))
         print("Mean error in cumulants for {0} samples is {1}".format(nsamples, np.mean(tensor_diff_local)))
         
-    return (diff_H_global, diff_H_abs_global, diff_lambda_global,  tensor_diff_global)
+    return (diff_H_global, diff_H_abs_global, diff_lambda_global, tensor_diff_global)
 
 def plot(nlatent, nobserved, diff_H, diff_H_abs, diff_lambda, tensor_diff, nsamples_list, nonlinear_X, alpha_X, nonlinear_Z, alpha_Z):
     """
@@ -82,18 +83,19 @@ def plot(nlatent, nobserved, diff_H, diff_H_abs, diff_lambda, tensor_diff, nsamp
     Args:
         nlatent (int): number of latent variables.
         nobserved (int): number of observed variables.
-        diff_H (list[float]): list containing the mean errors in estimating H for each number of samples.
-        diff_H_abs (list[float]): list containing the mean errors in estimating abs(H) for each number of samples.
-        diff_lambda (list[float]): list containing the mean errors in estimating Lambda for each number of samples.
-        nsamples_list (list[int]): list containing the number of samples to use in constructing the cumulants.
-        nonlinear_X (bool): boolean indicating whether the results in diff_H, diff_H_abs and diff_lambda were obtained with nonlinearity 
+        diff_H (list[float]): a list containing the mean errors in estimating H for each number of samples.
+        diff_H_abs (list[float]): a list containing the mean errors in estimating abs(H) for each number of samples.
+        diff_lambda (list[float]): a list containing the mean errors in estimating Lambda for each number of samples.
+        tensor_diff (list[float]): a list containing the mean errors in estimating the population cumulants for each number of samples.
+        nsamples_list (list[int]): a list containing the number of samples to use in constructing the cumulants.
+        nonlinear_X (bool): boolean indicating whether the results in diff_H, diff_H_abs, diff_lambda and tensor_diff were obtained with nonlinearity 
             in the transformation from latent to observed variables.
         alpha_X (float): coefficient quantifying how much nonlinearity was added in the transformation from latent to observed variables 
-            in the experiments yielding the errors in diff_H, diff_H_abs, and diff_lambda. Equals 0 if nonlinear_X is False.
-        nonlinear_Z (bool): boolean indicating whether the results in diff_H, diff_H_abs and diff_lambda were obtained with nonlinearity 
+            in the experiments yielding the errors in diff_H, diff_H_abs, diff_lambda and tensor_diff. Equals 0 if nonlinear_X is False.
+        nonlinear_Z (bool): boolean indicating whether the results in diff_H, diff_H_abs, diff_lambda and tensor_diff were obtained with nonlinearity 
             in the latent space.
         alpha_Z (float): coefficient quantifying how much nonlinearity was added in the latent space in the experiments yielding the errors 
-            in diff_H, diff_H_abs, and diff_lambda. Equals 0 if nonlinear_Z is False.
+            in diff_H, diff_H_abs, diff_lambda and tensor_diff. Equals 0 if nonlinear_Z is False.
     """
     match (nonlinear_X, nonlinear_Z):
         case (False,False):

@@ -5,15 +5,15 @@ from itertools import permutations
 
 def match_row(M1_row, M2):
     """
-    Given a vector of size 1xn and a matrix of size mxn, find the row of the matrix closest to the vector (in the Frobenius norm sense).
+    Given a vector of size 1xn and a matrix of size mxn, find the row of the matrix closest to the vector (in the Euclidean norm sense).
 
     Args:
         M1_row (numpy.ndarray): vector of size 1xn.
         M2 (numpy.ndarray): matrix of size mxn.
     
     Returns:
-        int: the index of the row of M2 that is closest to M1_row.
-        float: the Frobenius norm of the difference between M1_row and its closest row in M2.
+        match (int): the index of the row of M2 that is closest to M1_row.
+        diff (float): the Euclidean norm of the difference between M1_row and its closest row in M2.
     """
     q, _ = np.shape(M2)
     diff = sys.float_info.max
@@ -36,8 +36,8 @@ def symmetric_indices(d, n):
         n (int): the order of the tensor.
 
     Returns:
-        numpy.ndarray: an array containing the indices of symmetric permutations.
-        numpy.ndarray: a tensor representing the permutation indices for symmetric tensors.
+        symind (numpy.ndarray): an array containing the indices of symmetric permutations.
+        findsym (numpy.ndarray): a tensor representing the permutation indices for symmetric tensors.
         nperm (numpy.ndarray): an array containing the number of unique permutations for each symmetry order.
 
     Citation:
@@ -93,7 +93,7 @@ def find_best_permutation(matrixA, matrixB):
         matrixB (numpy.ndarray): the matrix to compare against.
     
     Returns:
-        numpy.ndarray: a permutation matrix minimizing ||matrixA*P - matrixB||
+        P (numpy.ndarray): a permutation matrix minimizing ||matrixA*P - matrixB||
     """
     _,q = np.shape(matrixA)
     global_diff = sys.float_info.max
@@ -134,7 +134,7 @@ def lambda_diff(Lambda, Lambdar, perm):
 
 def H_diff(H, Hr, perm):
     """
-    Calculate the difference between the pseudoinverse of original mixing and that of the estimated one.
+    Calculate the difference between the pseudoinverse of the true mixing matrix and that of the estimated one.
 
     Args:
         H (numpy.ndarray): the pseudoinverse of the true mixing matrix.
@@ -143,9 +143,9 @@ def H_diff(H, Hr, perm):
         perm (numpy.ndarray): permutation of the latent nodes in the observational context.
     
     Returns:
-        float: the norm of the difference between the pseudoinverse of the true mixing matrix and that of the recovered mixing matrix,
+        diff (float): the norm of the difference between the pseudoinverse of the true mixing matrix and that of the recovered mixing matrix,
             up to the permutation of the latent nodes in the observational context.
-        float: the norm of the difference between the absolute value (entrywise) of the true mixing matrix and that of the recovered mixing matrix,
+        diff_abs (float): the norm of the difference between the absolute value (entrywise) of the true mixing matrix and that of the recovered mixing matrix,
             up to the permutation of the latent nodes in the observational context.
     """
     Hrnperm = np.matmul(perm,Hr)

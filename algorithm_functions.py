@@ -22,10 +22,10 @@ def create_params(p, q):
         q (int): number of latent variables.
 
     Returns:
-        tuple: a tuple containing the sampled B and Lambdas.
-            - B (numpy.ndarray): the mixing matrix, with shape (p, q).
-            - Lambdas (dict): a dictionary containing the observational and interventional Lambdas (perfect interventions).
-                Keys indicate the context (str), and values are the corresponding Lambdas (numpy.ndarray)
+        B, Lambdas (tuple): a tuple containing the sampled B and Lambdas.
+            B (numpy.ndarray): the mixing matrix, with shape (p, q).
+            Lambdas (dict): a dictionary containing the observational and interventional Lambdas (perfect interventions).
+                Keys indicate the context (str), and values are the corresponding Lambdas (numpy.ndarray).
     """
     # Sample H
     rgen = np.random.default_rng()
@@ -63,7 +63,7 @@ def create_models(nmodels, nobserved, nlatent):
         nlatent (int): number of latent variables per model.
     
     Returns:
-        list: a list containing the generated models. 
+        model_params (list): a list containing the generated models. 
     """
     model_params = []
     for _ in range(nmodels):
@@ -87,8 +87,8 @@ def create_X_samples(nsamples, Lambda, B, i, nonlinear_X, alpha_X, nonlinear_Z, 
         alpha_Z (float): coefficient quantifying amount of nonlinearity to add in the latent space. Equals 0 if nonlinear_Z is False.
     
     Returns:
-        numpy.ndarray: the sample data.
-        numpy.ndarray: the product B(I-Lambda)^{-1}D in the context specified by i.
+        data (numpy.ndarray): the sample data.
+        product (numpy.ndarray): the product B(I-Lambda)^{-1}D in the context specified by i.
     """
     p, q = np.shape(B)
     data = []
@@ -139,10 +139,10 @@ def sample_cumulant(nsamples, Lambda, B, i, nonlinear_X, alpha_X, nonlinear_Z, a
         alpha_Z (float): coefficient quantifying amount of nonlinearity to add in the latent space. Equals 0 if nonlinear_Z is False.
     
     Returns:
-        numpy.ndarray: the sample third-order cumulant.
-        numpy.ndarray: the population third-order cumulant.
-        float: the Frobenius norm of the difference between the sample and the population cumulants.
-        numpy.ndarray: the product B(I-Lambda)^{-1}D in the context specified by i.
+        third_order_kstat (numpy.ndarray): the sample third-order cumulant.
+        real_tensor (numpy.ndarray): the population third-order cumulant.
+        diff (float): the Frobenius norm of the difference between the sample and the population cumulants.
+        real_product (numpy.ndarray): the product B(I-Lambda)^{-1}D in the context specified by i.
     
     Citation:
         Kexin Wang and Anna Seigal. Identifiability of overcomplete independent component analysis. arXiv preprint arXiv:2401.14709, 2024.
@@ -167,7 +167,7 @@ def sample_cumulant(nsamples, Lambda, B, i, nonlinear_X, alpha_X, nonlinear_Z, a
 
 def construct_cumulants_kstat(nsamples, Lambdas, B, nonlinear_X, alpha_X, nonlinear_Z, alpha_Z):
     """
-    Construct cumulant tensors and products for all contexts.
+    Construct cumulant tensors and products in all contexts.
 
     Args:
         nsamples (int): number of samples to use to calculate sample cumulants.
@@ -181,13 +181,13 @@ def construct_cumulants_kstat(nsamples, Lambdas, B, nonlinear_X, alpha_X, nonlin
         alpha_Z (float): coefficient quantifying amount of nonlinearity to add in the latent space. Equals 0 if nonlinear_Z is False.
     
     Returns:
-        dict: a dictionary containing the sample third-order cumulants.
+        Ts (dict): a dictionary containing the sample third-order cumulants.
             Keys indicate the context (str), and values are the corresponding sample cumulants (numpy.ndarray).
-        dict: a dictionary containing the population third-order cumulants.
+        realTs (dict): a dictionary containing the population third-order cumulants.
             Keys indicate the context (str), and values are the corresponding population cumulants (numpy.ndarray).
-        dict: a dictionary containing the products B(I-Lambda)^{-1}D across contexts.
+        Products (dict): a dictionary containing the products B(I-Lambda)^{-1}D across contexts.
             Keys indicate the context (str), and values are the corresponding products (numpy.ndarray).
-        float: mean difference between population and sample cumulant across contexts.
+        mean_diff (float): mean difference between population and sample cumulant across contexts.
     """
     Ts = {}
     realTs = {}
@@ -204,13 +204,13 @@ def construct_cumulants_kstat(nsamples, Lambdas, B, nonlinear_X, alpha_X, nonlin
     mean_diff = np.mean(tensor_diffs)
     return Ts, realTs, Products, mean_diff
 
-def simult_diag(T,q):
+def simult_diag(T, q):
     """
-    Calculate the rank-q symmetric CP decomposition of a tensor.
+    Calculate the rank-q symmetric CP decomposition of an order-3 tensor using simultaneous diagonalization.
 
     Args:
         T (numpy.ndarray): the tensor to perform tensor decomposition on.
-        q (int): the desired rank of the decomposition.
+        q (int): the rank of the decomposition.
     
     Returns:
         numpy.ndarray: the normalized (by column) factor matrix of the decomposition.
@@ -245,7 +245,7 @@ def decompose_tensors(Ts,q):
         q (int): number of latent variables.
     
     Returns:
-        dict: a dictionary containing the recovered factor matrices.
+        Product_recovery (dict): a dictionary containing the recovered factor matrices.
             Keys indicate the context (str), and values are the corresponding factor matrices (numpy.ndarray).
     """
     Product_recovery = {}
@@ -263,7 +263,7 @@ def find_alphas(T, recovered_product):
         recovered_product (numpy.ndarray): the normalized (by column) factor matrix recovered by performing tensor decomposition on T.
     
     Returns:
-        numpy.ndarray: the coefficients minimizing the Frobenius norm of the difference between T and the reconstructed tensor.
+        alphas (numpy.ndarray): the coefficients minimizing the Frobenius norm of the difference between T and the reconstructed tensor.
     """
     p, q = np.shape(recovered_product)
     b = np.reshape(T, p**3)
@@ -289,7 +289,7 @@ def nonnorm_products(Ts, RProducts):
             Keys indicate the context (str), and values are the corresponding normalized factor matrices (numpy.ndarray).
         
     Returns:
-        dict: a dictionary containing the non-normalized factor matrices and their pseudoinverses.
+        RProducts_nn (dict): a dictionary containing the non-normalized factor matrices and their pseudoinverses.
             Keys indicate the context (str), and values are tuples containing the non-normalized factor matrices (numpy.ndarray) and their pseudoinverses (numpy.ndarray).
     """
     _, q = np.shape(RProducts["obs"])
@@ -313,9 +313,11 @@ def recover_int_target(C, Ctilde, current_ints):
         current_ints (set[int]): a set containing the intervention targets of the interventional contexts that have already been matched with an intervention target.
     
     Returns:
-        tuple: a tuple containing the intervened variable in the context where the pseudoinverse of Ctilde was recovered 
-            and the index indicating the relabeling of this variable in such context.
-        numpy.ndarray: the permutation matrix encoding the relabeling of the latent nodes in the interventional context where the pseudoinverse of Ctilde was recovered.
+        tuple (tuple): a tuple containing three elements: (i, j, diff).
+            i (int): intervened variable in the context where the pseudoinverse of Ctilde was recovered.
+            j (int): index indicating the relabeling of Zi in the context where the pseudoinverse of Ctilde was recovered.
+            diff (float): Euclidean norm of the difference between C[i,:] and Ctilde[j,:]
+        P (numpy.ndarray): the permutation matrix encoding the relabeling of the latent nodes in the interventional context where the pseudoinverse of Ctilde was recovered.
     """
     q, _ = np.shape(C)
     diff_list = []
@@ -362,10 +364,9 @@ def match_int(Productsnn):
             Keys indicate the context (str), and values are tuples containing the corresponding non-normalized factor matrix (numpy.ndarray) and its pseudoinverse (numpy.ndarray).
 
     Returns:
-        dict: a dictionary mapping each context to its non-normalized factor matrix, its pseudoinverse (both after undoing relabeling of latent nodes) and its intervention target. 
+        tuples (dict): a dictionary mapping each context to its non-normalized factor matrix, its pseudoinverse (both after undoing relabeling of latent nodes) and its intervention target. 
             Keys indicate the context (str), and values are tuples containing the corresponding non-normalized factor matrix (numpy.ndarray), its pseudoinverse (numpy.ndarray),
-                and a tuple containing the intervention target of the context (int) and the relabeling of the intervened variable in the context (int). The latter two are both -1
-                in the observational context.
+                and a tuple containing the intervention target of the context (int) and the relabeling of the intervened variable in the context (int). The latter two are both -1 in the observational context.
     """
     tuples = {}
     Prodnn, C = Productsnn["obs"]
@@ -393,12 +394,12 @@ def recover_H(tuples):
 
     Args:
         tuples (dict): a dictionary containing the factor matrices recovered via tensor decomposition in each context (with consistent labeling of latent nodes across contexts),
-            its pseudoinverses, and the intervention targets. Keys indicate the context (str), and values are tuples containing the corresponding factor matrix (numpy.ndarray),
-            its pseudoinvsrse (numpy.ndarray), and a tuple containing the intervention target of the context (int) and the relabeling of the intervened variable in the context (int).
-            The latter two are both -1 in the observational context.
+            its pseudoinverses, and the intervention targets. 
+                Keys indicate the context (str), and values are tuples containing the corresponding factor matrix (numpy.ndarray), its pseudoinverse (numpy.ndarray), 
+                and a tuple containing the intervention target of the context (int) and the relabeling of the intervened variable in the context (int). The latter two are both -1 in the observational context.
     
     Returns:
-        numpy.ndarray: the pseudoinverse of the mixing matrix B.
+        H (numpy.ndarray): the pseudoinverse of the mixing matrix B.
     """
     keys = tuples.keys()
     Hpair = []
@@ -425,13 +426,12 @@ def recover_lambda(tuples, H, tol_param=1e-08):
     Args:
         tuples (dict): a dictionary containing the factor matrices recovered via tensor decomposition in each context (with consistent labeling of latent nodes across contexts),
             its pseudoinverses, and the intervention targets. Keys indicate the context (str), and values are tuples containing the corresponding factor matrix (numpy.ndarray),
-            its pseudoinvsrse (numpy.ndarray), and a tuple containing the intervention target of the context (int) and the relabeling of the intervened variable in the context (int).
-            The latter two are both -1 in the observational context.
+            its pseudoinverse (numpy.ndarray), and a tuple containing the intervention target of the context (int) and the relabeling of the intervened variable in the context (int). The latter two are both -1 in the observational context.
         H (numpy.ndarray): the pseudoinverse of the mixing matrix B.
         tol_param (float): threshold used to determine if a vector v_r is in the span of a set of vectors {v_1,...,v_n}
     
     Returns:
-        numpy.ndarray: the matrix encoding the latent graph.
+        Lambda (numpy.ndarray): the matrix encoding the latent graph.
     """
     p, q = np.shape(tuples["obs"][0])
     _, Invnn_obs, _ = tuples["obs"]
