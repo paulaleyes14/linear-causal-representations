@@ -9,14 +9,14 @@ To install the required packages, run the following command in your terminal:
 pip install -r requirements.txt
 ```
 ### Parameter recovery from population cumulants
-To test the performance of the method using population cumulants as input, run:
+To test the performance of our method for causal disentanglement using population cumulants as input, run:
 
 ```bash
 python3 run_pop.py
 ```
 
 ### Parameter recovery from sample cumulants
-To test the performance of the method using sample cumulants as input, run:
+To test the performance of our method for causal disentanglement using sample cumulants as input, run:
 
 ```bash
 python3 run_sample.py [arguments]
